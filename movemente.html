@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Movemente — Networking</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#ffffff; --bg2:#f5f4f0; --bg3:#e8e7e2;
+  --text:#1a1a18; --text2:#6b6a65; --text3:#a8a79f;
+  --border:rgba(0,0,0,0.09); --border2:rgba(0,0,0,0.16);
+  --blue:#185fa5; --blue-bg:#e6f1fb; --blue-t:#0c447c;
+  --green:#3b6d11; --green-bg:#eaf3de; --green-t:#27500a;
+  --purple:#534ab7; --purple-bg:#eeedfe; --purple-t:#3c3489;
+  --amber:#854f0b; --amber-bg:#faeeda; --amber-t:#633806;
+  --red:#a32d2d; --red-bg:#fcebeb; --red-t:#791f1f;
+  --gray:#5f5e5a; --gray-bg:#f1efe8; --gray-t:#444441;
+  --r:8px; --rl:12px;
+}
+@media (prefers-color-scheme:dark) {
+  :root {
+    --bg:#1e1e1c; --bg2:#272724; --bg3:#323230;
+    --text:#f0efe9; --text2:#a8a79f; --text3:#6b6a65;
+    --border:rgba(255,255,255,0.09); --border2:rgba(255,255,255,0.16);
+    --blue:#378add; --blue-bg:#042c53; --blue-t:#85b7eb;
+    --green:#639922; --green-bg:#173404; --green-t:#c0dd97;
+    --purple:#7f77dd; --purple-bg:#26215c; --purple-t:#afa9ec;
+    --amber:#ef9f27; --amber-bg:#412402; --amber-t:#fac775;
+    --red:#e24b4a; --red-bg:#501313; --red-t:#f09595;
+    --gray:#888780; --gray-bg:#2c2c2a; --gray-t:#b4b2a9;
+  }
+}
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg2); color:var(--text); font-size:15px; line-height:1.5; min-height:100vh; }
+
+/* NAV */
+.nav { background:var(--bg); border-bottom:0.5px solid var(--border); position:sticky; top:0; z-index:50; }
+.nav-inner { max-width:980px; margin:0 auto; padding:0 1rem; display:flex; align-items:center; gap:0; }
+.nav-brand { font-weight:500; font-size:15px; padding:14px 0; margin-right:1.5rem; white-space:nowrap; }
+.nav-brand span { color:var(--text2); font-weight:400; }
+.nav-tab { font-size:14px; padding:14px 14px; border-bottom:2px solid transparent; color:var(--text2); cursor:pointer; white-space:nowrap; background:none; border-top:none; border-left:none; border-right:none; font-family:inherit; }
+.nav-tab:hover { color:var(--text); }
+.nav-tab.active { color:var(--blue); border-bottom-color:var(--blue); }
+
+/* PAGES */
+.page { display:none; max-width:980px; margin:0 auto; padding:1.5rem 1rem 4rem; }
+.page.active { display:block; }
+h2 { font-size:16px; font-weight:500; margin-bottom:1rem; }
+
+/* BUTTONS */
+button { cursor:pointer; font-family:inherit; font-size:13px; border-radius:var(--r); border:0.5px solid var(--border2); background:var(--bg); color:var(--text); padding:7px 14px; }
+button:hover { background:var(--bg3); }
+.btn-primary { background:var(--text); color:var(--bg); border-color:transparent; }
+.btn-primary:hover { opacity:0.82; background:var(--text); }
+.btn-sm { font-size:12px; padding:4px 10px; }
+.btn-danger { color:var(--red); border-color:rgba(163,45,45,0.2); }
+.btn-danger:hover { background:var(--red-bg); }
+.btn-export { background:var(--green-bg); color:var(--green); border-color:transparent; }
+
+/* INPUTS */
+input,select,textarea { font-size:13px; padding:8px 10px; border-radius:var(--r); border:0.5px solid var(--border2); background:var(--bg); color:var(--text); font-family:inherit; outline:none; }
+input:focus,select:focus,textarea:focus { border-color:var(--blue); }
+select { appearance:none; padding-right:24px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 8px center; }
+textarea { resize:vertical; }
+
+/* TOOLBAR */
+.toolbar { display:flex; gap:8px; margin-bottom:1.25rem; flex-wrap:wrap; align-items:center; }
+.toolbar input[type=text] { flex:1; min-width:180px; }
+
+/* STATS */
+.stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:1.5rem; }
+.stat { background:var(--bg); border-radius:var(--rl); border:0.5px solid var(--border); padding:14px 16px; }
+.stat-label { font-size:12px; color:var(--text2); margin-bottom:5px; }
+.stat-value { font-size:26px; font-weight:500; line-height:1.1; }
+.stat-sub { font-size:12px; color:var(--text3); margin-top:3px; }
+
+/* PANELS */
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+.three-col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-bottom:14px; }
+@media(max-width:640px) { .two-col,.three-col { grid-template-columns:1fr; } }
+.panel { background:var(--bg); border-radius:var(--rl); border:0.5px solid var(--border); padding:16px 18px; }
+.panel-title { font-size:12px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:14px; }
+.panel-section { margin-bottom:1.25rem; }
+.panel-section:last-child { margin-bottom:0; }
+
+/* DASH DIVIDER */
+.dash-section-title { font-size:13px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.06em; margin:1.5rem 0 0.75rem; padding-bottom:6px; border-bottom:0.5px solid var(--border); }
+
+/* FUNNEL */
+.funnel { display:flex; flex-direction:column; gap:7px; }
+.funnel-row { display:flex; align-items:center; gap:8px; }
+.funnel-label { font-size:12px; color:var(--text2); width:130px; flex-shrink:0; }
+.funnel-bar-wrap { flex:1; background:var(--bg3); border-radius:99px; height:9px; overflow:hidden; }
+.funnel-bar { height:100%; border-radius:99px; }
+.funnel-count { font-size:12px; font-weight:500; min-width:20px; text-align:right; }
+
+/* CHART SVG */
+.chart-svg { width:100%; overflow:visible; }
+
+/* UPCOMING */
+.upcoming-item { display:flex; gap:10px; align-items:flex-start; margin-bottom:10px; }
+.upcoming-date { background:var(--blue-bg); color:var(--blue-t); border-radius:var(--r); padding:6px 8px; font-size:11px; font-weight:600; text-align:center; min-width:46px; flex-shrink:0; }
+.upcoming-date .day { font-size:17px; font-weight:700; line-height:1; }
+.upcoming-body { flex:1; font-size:13px; }
+.upcoming-org { font-weight:500; }
+.upcoming-who { color:var(--text2); font-size:12px; }
+
+/* RECENT */
+.recent-item { font-size:13px; padding:8px 10px; background:var(--bg2); border-radius:var(--r); margin-bottom:6px; }
+.recent-meta { font-size:11px; color:var(--text2); margin-bottom:2px; }
+
+/* ORG CARDS */
+.org-card { background:var(--bg); border:0.5px solid var(--border); border-radius:var(--rl); margin-bottom:10px; overflow:hidden; }
+.org-header { display:flex; align-items:center; gap:12px; padding:13px 16px; cursor:pointer; user-select:none; }
+.org-header:hover { background:var(--bg2); }
+.org-avatar { width:38px; height:38px; border-radius:50%; background:var(--blue-bg); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--blue-t); flex-shrink:0; }
+.org-avatar.edu { background:var(--green-bg); color:var(--green-t); }
+.org-name { font-weight:500; font-size:14px; }
+.org-meta { font-size:12px; color:var(--text2); }
+.org-right { margin-left:auto; display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.pill { font-size:11px; padding:3px 9px; border-radius:99px; font-weight:500; white-space:nowrap; }
+.chevron { font-size:15px; color:var(--text3); display:inline-block; transition:transform 0.18s; }
+.chevron.open { transform:rotate(180deg); }
+
+.org-body { border-top:0.5px solid var(--border); }
+.sec-block { padding:12px 16px; border-bottom:0.5px solid var(--border); }
+.sec-label { font-size:11px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:9px; }
+.obs-area { width:100%; min-height:52px; background:var(--bg2); }
+.field-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+@media(max-width:540px) { .field-grid { grid-template-columns:1fr; } }
+.field-grid .full { grid-column:1/-1; }
+.field-grid input,.field-grid select { width:100%; }
+.val-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px; }
+.val-row label { font-size:13px; color:var(--text2); }
+.val-row input { width:150px; }
+
+/* CONTACT CARDS */
+.contact-card { background:var(--bg2); border-radius:var(--r); padding:12px 14px; margin-bottom:8px; border:0.5px solid var(--border); }
+.contact-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:9px; }
+.contact-title { font-size:13px; font-weight:500; }
+
+/* LOG */
+.log-entry { background:var(--bg); border:0.5px solid var(--border); border-radius:var(--r); padding:8px 10px 8px 10px; margin-bottom:5px; font-size:12px; position:relative; padding-right:50px; }
+.log-entry.is-meeting { background:var(--blue-bg); border-color:transparent; }
+.log-meta { color:var(--text2); margin-bottom:2px; }
+.log-tipo { font-weight:500; color:var(--text); }
+.log-resp { color:var(--text); }
+.log-del { position:absolute; top:6px; right:7px; }
+.add-log-grid { display:grid; grid-template-columns:1fr 1fr auto; gap:6px; margin-top:7px; align-items:center; }
+.add-log-grid.with-date { grid-template-columns:1fr 1fr 1fr auto; }
+@media(max-width:560px) { .add-log-grid,.add-log-grid.with-date { grid-template-columns:1fr; } }
+.add-log-grid input,.add-log-grid select { font-size:12px; }
+.org-footer { padding:10px 16px 12px; display:flex; gap:7px; flex-wrap:wrap; }
+
+/* MODAL */
+.modal-bg { position:fixed; inset:0; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:200; padding:1rem; }
+.modal { background:var(--bg); border-radius:var(--rl); border:0.5px solid var(--border2); padding:1.5rem; width:460px; max-width:100%; max-height:90vh; overflow-y:auto; }
+.modal h3 { font-size:16px; font-weight:500; margin-bottom:1rem; }
+.mfield { margin-bottom:10px; }
+.mfield label { font-size:12px; color:var(--text2); display:block; margin-bottom:3px; }
+.mfield input,.mfield select,.mfield textarea { width:100%; }
+.modal-footer { display:flex; gap:8px; justify-content:flex-end; margin-top:1rem; }
+
+.empty { text-align:center; padding:3rem 1rem; color:var(--text2); font-size:14px; }
+.no-data { color:var(--text3); font-size:13px; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-brand">Movemente <span>· Networking</span></div>
+    <button class="nav-tab active" onclick="showPage('dashboard',this)">Dashboard</button>
+    <button class="nav-tab" onclick="showPage('captacao',this)">Captação</button>
+    <button class="nav-tab" onclick="showPage('educacao',this)">Educação</button>
+  </div>
+</nav>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+
+  <div class="dash-section-title">Geral</div>
+  <div class="stats-grid" id="dash-stats-geral"></div>
+
+  <div class="dash-section-title">Captação de recursos</div>
+  <div class="stats-grid" id="dash-stats-cap"></div>
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-title">Funil de captação</div>
+      <div class="funnel" id="dash-funnel-cap"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Recursos captados (R$)</div>
+      <svg id="chart-cap" class="chart-svg"></svg>
+    </div>
+  </div>
+
+  <div class="dash-section-title">Instituições de educação — Congresso</div>
+  <div class="stats-grid" id="dash-stats-edu"></div>
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-title">Funil — confirmação de participação</div>
+      <div class="funnel" id="dash-funnel-edu"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Públicas vs privadas</div>
+      <svg id="chart-edu" class="chart-svg"></svg>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-title">Próximas reuniões</div>
+      <div id="dash-upcoming"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Atividade recente</div>
+      <div id="dash-recent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CAPTAÇÃO -->
+<div class="page" id="page-captacao">
+  <div class="toolbar">
+    <input type="text" id="cap-search" placeholder="Buscar organização ou pessoa…" oninput="renderCap()">
+    <select id="cap-filter" onchange="renderCap()" style="font-size:13px">
+      <option value="">Todos os status</option>
+      <option value="0">Sem contato</option>
+      <option value="1">Em contato</option>
+      <option value="2">Reunião agendada</option>
+      <option value="3">Proposta enviada</option>
+      <option value="4">Captado</option>
+      <option value="5">Descartado</option>
+    </select>
+    <button class="btn-primary" onclick="openOrgModal('cap')">+ Nova organização</button>
+    <button class="btn-export" onclick="exportCSV('cap')">↓ CSV</button>
+  </div>
+  <div id="cap-list"></div>
+</div>
+
+<!-- EDUCAÇÃO -->
+<div class="page" id="page-educacao">
+  <div class="toolbar">
+    <input type="text" id="edu-search" placeholder="Buscar instituição ou pessoa…" oninput="renderEdu()">
+    <select id="edu-filter-status" onchange="renderEdu()" style="font-size:13px">
+      <option value="">Todos os status</option>
+      <option value="0">Sem contato</option>
+      <option value="1">Em contato</option>
+      <option value="2">Reunião agendada</option>
+      <option value="3">Interessado</option>
+      <option value="4">Confirmado</option>
+      <option value="5">Recusou</option>
+    </select>
+    <select id="edu-filter-tipo" onchange="renderEdu()" style="font-size:13px">
+      <option value="">Pública e privada</option>
+      <option value="publica">Pública</option>
+      <option value="privada">Privada</option>
+    </select>
+    <button class="btn-primary" onclick="openOrgModal('edu')">+ Nova instituição</button>
+    <button class="btn-export" onclick="exportCSV('edu')">↓ CSV</button>
+  </div>
+  <div id="edu-list"></div>
+</div>
+
+<!-- MODAL ORG/EDU -->
+<div id="modal-org" style="display:none">
+  <div class="modal-bg" id="modal-org-bg">
+    <div class="modal">
+      <h3 id="modal-org-title">Nova organização</h3>
+      <div class="mfield"><label>Nome *</label><input id="mf-name" placeholder="Nome completo"></div>
+      <div class="mfield"><label id="mf-sector-label">Setor / tipo</label><input id="mf-sector" placeholder="Ex.: Empresa pública, Fundação…"></div>
+      <div id="mf-edu-fields" style="display:none">
+        <div class="mfield"><label>Tipo de instituição</label>
+          <select id="mf-edu-tipo">
+            <option value="publica">Pública</option>
+            <option value="privada">Privada</option>
+          </select>
+        </div>
+        <div class="mfield"><label>Cidade</label><input id="mf-cidade" placeholder="Ex.: Belo Horizonte"></div>
+        <div class="mfield"><label>Vagas / representantes esperados</label><input id="mf-vagas" type="number" min="0" placeholder="0"></div>
+      </div>
+      <div class="mfield"><label>Status inicial</label>
+        <select id="mf-status"></select>
+      </div>
+      <div class="mfield"><label>Observações</label><textarea id="mf-obs" rows="3" placeholder="Contexto, histórico…"></textarea></div>
+      <div class="modal-footer">
+        <button onclick="closeOrgModal()">Cancelar</button>
+        <button class="btn-primary" onclick="saveOrg()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONSTANTS ────────────────────────────────────────────────────────────────
+const KEY = 'movemente_v1';
+
+const CAP_STATUS = [
+  { label:'Sem contato',      bg:'var(--gray-bg)',   color:'var(--gray-t)',   bar:'#888780' },
+  { label:'Em contato',       bg:'var(--amber-bg)',  color:'var(--amber-t)',  bar:'#ef9f27' },
+  { label:'Reunião agendada', bg:'var(--blue-bg)',   color:'var(--blue-t)',   bar:'#378add' },
+  { label:'Proposta enviada', bg:'var(--purple-bg)', color:'var(--purple-t)', bar:'#7f77dd' },
+  { label:'Captado',          bg:'var(--green-bg)',  color:'var(--green-t)',  bar:'#639922' },
+  { label:'Descartado',       bg:'var(--red-bg)',    color:'var(--red-t)',    bar:'#e24b4a' }
+];
+
+const EDU_STATUS = [
+  { label:'Sem contato',      bg:'var(--gray-bg)',   color:'var(--gray-t)',   bar:'#888780' },
+  { label:'Em contato',       bg:'var(--amber-bg)',  color:'var(--amber-t)',  bar:'#ef9f27' },
+  { label:'Reunião agendada', bg:'var(--blue-bg)',   color:'var(--blue-t)',   bar:'#378add' },
+  { label:'Interessado',      bg:'var(--purple-bg)', color:'var(--purple-t)', bar:'#7f77dd' },
+  { label:'Confirmado',       bg:'var(--green-bg)',  color:'var(--green-t)',  bar:'#639922' },
+  { label:'Recusou',          bg:'var(--red-bg)',    color:'var(--red-t)',    bar:'#e24b4a' }
+];
+
+const TIPO_LABELS = { email:'E-mail', ligacao:'Ligação', whatsapp:'WhatsApp', reuniao:'Reunião', outro:'Outro' };
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let D = { cap: [], edu: [] };
+let expanded = {};
+let modalMode = 'cap';
+let editId = null;
+
+// ── PERSISTENCE ──────────────────────────────────────────────────────────────
+function load() {
+  try { const r = localStorage.getItem(KEY); if (r) D = JSON.parse(r); } catch(e) {}
+  if (!D.cap) D.cap = [];
+  if (!D.edu) D.edu = [];
+  renderAll();
+}
+
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(D)); } catch(e) {}
+}
+
+// ── UTILS ────────────────────────────────────────────────────────────────────
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function today() {
+  var d = new Date();
+  return pad(d.getDate()) + '/' + pad(d.getMonth()+1) + '/' + d.getFullYear();
+}
+
+function pad(n) { return String(n).padStart(2,'0'); }
+
+function initials(n) {
+  return (n||'?').split(' ').slice(0,2).map(function(w){ return w[0]||''; }).join('').toUpperCase() || '?';
+}
+
+function fmtBRL(v) {
+  return 'R$ ' + Number(v||0).toLocaleString('pt-BR', { minimumFractionDigits:0, maximumFractionDigits:0 });
+}
+
+function parseDate(s) {
+  if (!s) return null;
+  var p = s.split('/');
+  if (p.length < 3) return null;
+  var d = new Date(+p[2], +p[1]-1, +p[0]);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function allLogs(list) {
+  var result = [];
+  list.forEach(function(o) {
+    (o.contacts||[]).forEach(function(c) {
+      (c.logs||[]).forEach(function(l) {
+        result.push({ log:l, orgName:o.name, contactName:c.name||'' });
+      });
+    });
+  });
+  return result;
+}
+
+function totalLogs(org) {
+  return (org.contacts||[]).reduce(function(s,c){ return s+(c.logs||[]).length; }, 0);
+}
+
+function tipoLabel(t) { return TIPO_LABELS[t] || t || '—'; }
+
+// ── NAVIGATION ───────────────────────────────────────────────────────────────
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.nav-tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'dashboard') renderDashboard();
+}
+
+function renderAll() {
+  renderDashboard();
+  renderCap();
+  renderEdu();
+}
+
+// ── DASHBOARD ────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  // GERAL
+  var capLogs = allLogs(D.cap).length;
+  var eduLogs = allLogs(D.edu).length;
+  var totalOrgs = D.cap.length + D.edu.length;
+  var totalInter = capLogs + eduLogs;
+  var reunioes = allLogs(D.cap.concat(D.edu)).filter(function(x){ return x.log.tipo==='reuniao'; }).length;
+
+  document.getElementById('dash-stats-geral').innerHTML =
+    statCard('Organizações / Inst.', totalOrgs, D.cap.length + ' captação · ' + D.edu.length + ' educação') +
+    statCard('Interações totais', totalInter, reunioes + ' reuniões') +
+    statCard('Pessoas cadastradas',
+      D.cap.reduce(function(s,o){ return s+(o.contacts||[]).length; },0) +
+      D.edu.reduce(function(s,o){ return s+(o.contacts||[]).length; },0), '');
+
+  // CAPTAÇÃO stats
+  var totalCap = D.cap.filter(function(o){ return o.status==4; }).reduce(function(s,o){ return s+(+o.valor||0); }, 0);
+  var metaCap  = D.cap.reduce(function(s,o){ return s+(+o.meta||0); }, 0);
+  document.getElementById('dash-stats-cap').innerHTML =
+    statCard('Organizações', D.cap.length, D.cap.filter(function(o){ return o.status==4; }).length + ' captadas') +
+    statCard('Recursos captados', fmtBRL(totalCap), metaCap ? 'Meta: '+fmtBRL(metaCap) : 'sem meta', true) +
+    statCard('Sem 1º contato', D.cap.filter(function(o){ return !o.status||o.status==0; }).length, 'de ' + D.cap.length);
+
+  // CAPTAÇÃO funil
+  renderFunnel('dash-funnel-cap', D.cap, CAP_STATUS);
+
+  // CAPTAÇÃO chart
+  var captadas = D.cap.filter(function(o){ return o.status==4 && o.valor>0; })
+    .sort(function(a,b){ return (+b.valor)-(+a.valor); }).slice(0,6);
+  renderBarChart('chart-cap', captadas.map(function(o){ return { label:o.name, value:+o.valor }; }), '#378add', fmtBRL);
+
+  // EDU stats
+  var confirmed = D.edu.filter(function(o){ return o.status==4; });
+  var totalVagas = confirmed.reduce(function(s,o){ return s+(+o.vagas||0); }, 0);
+  document.getElementById('dash-stats-edu').innerHTML =
+    statCard('Instituições', D.edu.length, D.edu.filter(function(o){ return o.tipo==='publica'; }).length + ' públicas · ' + D.edu.filter(function(o){ return o.tipo==='privada'; }).length + ' privadas') +
+    statCard('Confirmadas', confirmed.length, 'de ' + D.edu.length) +
+    statCard('Vagas confirmadas', totalVagas, 'representantes');
+
+  // EDU funil
+  renderFunnel('dash-funnel-edu', D.edu, EDU_STATUS);
+
+  // EDU pub/priv chart
+  var pubCounts = EDU_STATUS.map(function(_,i){ return D.edu.filter(function(o){ return o.tipo==='publica' && (o.status||0)==i; }).length; });
+  var privCounts = EDU_STATUS.map(function(_,i){ return D.edu.filter(function(o){ return o.tipo==='privada' && (o.status||0)==i; }).length; });
+  renderGroupedChart('chart-edu', EDU_STATUS.map(function(s){ return s.label; }), pubCounts, privCounts);
+
+  // UPCOMING
+  var now = new Date(); now.setHours(0,0,0,0);
+  var upcoming = allLogs(D.cap.concat(D.edu))
+    .filter(function(x){ return x.log.tipo==='reuniao' && x.log.meetingDate; })
+    .map(function(x){ return { dt:parseDate(x.log.meetingDate), orgName:x.orgName, contactName:x.contactName, resp:x.log.resp }; })
+    .filter(function(x){ return x.dt && x.dt >= now; })
+    .sort(function(a,b){ return a.dt-b.dt; })
+    .slice(0,5);
+
+  var MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  document.getElementById('dash-upcoming').innerHTML = upcoming.length
+    ? upcoming.map(function(x){
+        return '<div class="upcoming-item"><div class="upcoming-date"><div class="day">'+pad(x.dt.getDate())+'</div><div>'+MONTHS[x.dt.getMonth()]+'</div></div>' +
+          '<div class="upcoming-body"><div class="upcoming-org">'+esc(x.orgName)+'</div>' +
+          '<div class="upcoming-who">'+esc(x.contactName)+(x.resp?' · '+esc(x.resp):'')+'</div></div></div>';
+      }).join('')
+    : '<span class="no-data">Nenhuma reunião agendada.</span>';
+
+  // RECENT
+  var recent = allLogs(D.cap.concat(D.edu))
+    .map(function(x){ return { log:x.log, orgName:x.orgName, contactName:x.contactName, ts:parseDate(x.log.date)||new Date(0) }; })
+    .sort(function(a,b){ return b.ts-a.ts; })
+    .slice(0,6);
+
+  document.getElementById('dash-recent').innerHTML = recent.length
+    ? recent.map(function(x){
+        return '<div class="recent-item"><div class="recent-meta">'+esc(x.orgName)+' · '+esc(x.contactName)+' · '+esc(x.log.date)+'</div>' +
+          '<div><strong>'+tipoLabel(x.log.tipo)+'</strong>'+(x.log.resp?' — '+esc(x.log.resp):'')+'</div></div>';
+      }).join('')
+    : '<span class="no-data">Nenhuma atividade registrada.</span>';
+}
+
+function statCard(label, value, sub, wide) {
+  return '<div class="stat" style="'+(wide?'grid-column:span 1':'')+'">' +
+    '<div class="stat-label">'+label+'</div>' +
+    '<div class="stat-value" style="'+(wide?'font-size:18px':'')+'">'+value+'</div>' +
+    (sub ? '<div class="stat-sub">'+sub+'</div>' : '') +
+    '</div>';
+}
+
+function renderFunnel(id, list, statuses) {
+  var counts = statuses.map(function(_,i){ return list.filter(function(o){ return (o.status||0)==i; }).length; });
+  var mx = Math.max.apply(null, counts.concat([1]));
+  document.getElementById(id).innerHTML = '<div class="funnel">' +
+    statuses.map(function(s,i){
+      return '<div class="funnel-row">' +
+        '<span class="funnel-label">'+s.label+'</span>' +
+        '<div class="funnel-bar-wrap"><div class="funnel-bar" style="width:'+Math.round(counts[i]/mx*100)+'%;background:'+s.bar+'"></div></div>' +
+        '<span class="funnel-count">'+counts[i]+'</span>' +
+        '</div>';
+    }).join('') + '</div>';
+}
+
+function renderBarChart(id, items, color, fmt) {
+  var svg = document.getElementById(id);
+  if (!items.length) { svg.outerHTML = '<div class="no-data" style="padding:40px 0;text-align:center">Nenhum dado ainda.</div>'; return; }
+  var W = 320; var H = 140; var pad = 8; var barW = Math.min(36, Math.floor((W - pad*2) / items.length) - 6);
+  var maxV = Math.max.apply(null, items.map(function(x){ return x.value; }));
+  var xStep = (W - pad*2) / items.length;
+  var html = '<svg viewBox="0 0 '+W+' '+H+'" class="chart-svg">';
+  items.forEach(function(item, i) {
+    var bh = Math.max(4, Math.round((item.value/maxV) * (H-50)));
+    var x = pad + i*xStep + (xStep-barW)/2;
+    var y = H - 20 - bh;
+    html += '<rect x="'+x+'" y="'+y+'" width="'+barW+'" height="'+bh+'" rx="3" fill="'+color+'"/>';
+    var lbl = item.label.length > 10 ? item.label.slice(0,9)+'…' : item.label;
+    html += '<text x="'+(x+barW/2)+'" y="'+(H-6)+'" text-anchor="middle" font-size="10" fill="var(--text2)">'+esc(lbl)+'</text>';
+    html += '<text x="'+(x+barW/2)+'" y="'+(y-4)+'" text-anchor="middle" font-size="9" fill="var(--text2)">'+fmt(item.value)+'</text>';
+  });
+  html += '</svg>';
+  svg.outerHTML = html;
+}
+
+function renderGroupedChart(id, labels, aVals, bVals) {
+  var svg = document.getElementById(id);
+  var W = 340; var H = 150; var padL = 8; var padB = 30;
+  var n = labels.length; var groupW = (W - padL*2) / n; var bw = Math.min(14, groupW/2 - 3);
+  var maxV = Math.max.apply(null, aVals.concat(bVals).concat([1]));
+  var chartH = H - padB;
+  var html = '<svg viewBox="0 0 '+W+' '+H+'" class="chart-svg">';
+  labels.forEach(function(lbl, i) {
+    var gx = padL + i*groupW;
+    var ah = Math.max(2, Math.round(aVals[i]/maxV*(chartH-16)));
+    var bh = Math.max(2, Math.round(bVals[i]/maxV*(chartH-16)));
+    html += '<rect x="'+(gx+groupW/2-bw-1)+'" y="'+(chartH-ah)+'" width="'+bw+'" height="'+ah+'" rx="2" fill="#378add"/>';
+    html += '<rect x="'+(gx+groupW/2+1)+'" y="'+(chartH-bh)+'" width="'+bw+'" height="'+bh+'" rx="2" fill="#639922"/>';
+    var shortLbl = lbl.length > 8 ? lbl.slice(0,7)+'…' : lbl;
+    html += '<text x="'+(gx+groupW/2)+'" y="'+(H-4)+'" text-anchor="middle" font-size="9" fill="var(--text2)">'+esc(shortLbl)+'</text>';
+  });
+  // legend
+  html += '<rect x="4" y="2" width="8" height="8" rx="1" fill="#378add"/>';
+  html += '<text x="15" y="10" font-size="9" fill="var(--text2)">Pública</text>';
+  html += '<rect x="60" y="2" width="8" height="8" rx="1" fill="#639922"/>';
+  html += '<text x="71" y="10" font-size="9" fill="var(--text2)">Privada</text>';
+  html += '</svg>';
+  svg.outerHTML = html;
+}
+
+// ── ORG CARDS (shared renderer) ──────────────────────────────────────────────
+function renderOrgCard(org, statuses, isEdu) {
+  var st = statuses[org.status||0];
+  var isOpen = expanded[org.id];
+  var contacts = org.contacts||[];
+  var logCount = totalLogs(org);
+  var avatarClass = 'org-avatar' + (isEdu ? ' edu' : '');
+  var mode = isEdu ? 'edu' : 'cap';
+
+  var contactsHtml = contacts.map(function(c) {
+    var logs = c.logs||[];
+    var logsHtml = logs.map(function(l, li) {
+      return '<div class="log-entry '+(l.tipo==='reuniao'?'is-meeting':'')+'">' +
+        '<div class="log-meta">'+esc(l.date)+(l.meetingDate?' · 📅 '+esc(l.meetingDate):'')+' · <span class="log-tipo">'+tipoLabel(l.tipo)+'</span></div>' +
+        (l.resp ? '<div class="log-resp">'+esc(l.resp)+'</div>' : '') +
+        '<button class="btn-sm btn-danger log-del" onclick="removeLog(\''+mode+'\',\''+org.id+'\',\''+c.id+'\','+li+')">✕</button>' +
+        '</div>';
+    }).join('');
+
+    return '<div class="contact-card">' +
+      '<div class="contact-header">' +
+        '<span class="contact-title">👤 '+esc(c.name||'Novo contato')+(c.role?' · <span style="font-weight:400;color:var(--text2)">'+esc(c.role)+'</span>':'')+'</span>' +
+        '<button class="btn-sm btn-danger" onclick="removeContact(\''+mode+'\',\''+org.id+'\',\''+c.id+'\')">Remover</button>' +
+      '</div>' +
+      '<div class="field-grid">' +
+        '<input placeholder="Nome completo *" value="'+esc(c.name||'')+'" onchange="upC(\''+mode+'\',\''+org.id+'\',\''+c.id+'\',\'name\',this.value)">' +
+        '<input placeholder="Cargo / função" value="'+esc(c.role||'')+'" onchange="upC(\''+mode+'\',\''+org.id+'\',\''+c.id+'\',\'role\',this.value)">' +
+        '<input type="email" placeholder="E-mail" value="'+esc(c.email||'')+'" onchange="upC(\''+mode+'\',\''+org.id+'\',\''+c.id+'\',\'email\',this.value)">' +
+        '<input type="tel" placeholder="Telefone / WhatsApp" value="'+esc(c.phone||'')+'" onchange="upC(\''+mode+'\',\''+org.id+'\',\''+c.id+'\',\'phone\',this.value)">' +
+        '<input class="full" placeholder="Observação sobre este contato" value="'+esc(c.obs||'')+'" onchange="upC(\''+mode+'\',\''+org.id+'\',\''+c.id+'\',\'obs\',this.value)">' +
+      '</div>' +
+      '<div style="margin-top:8px">' +
+        '<div class="sec-label">Log de interações ('+logs.length+')</div>' +
+        logsHtml +
+        '<div class="add-log-grid" id="alg-'+c.id+'">' +
+          '<select id="lt-'+c.id+'" onchange="toggleDateField(\''+c.id+'\')">' +
+            '<option value="email">E-mail</option>' +
+            '<option value="ligacao">Ligação</option>' +
+            '<option value="whatsapp">WhatsApp</option>' +
+            '<option value="reuniao">Reunião</option>' +
+            '<option value="outro">Outro</option>' +
+          '</select>' +
+          '<input id="ld-'+c.id+'" type="text" placeholder="Data reunião (dd/mm/aaaa)" style="display:none">' +
+          '<input id="lr-'+c.id+'" placeholder="Resposta / pauta / resultado">' +
+          '<button onclick="addLog(\''+mode+'\',\''+org.id+'\',\''+c.id+'\')">+ Reg.</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  var extraInfo = isEdu
+    ? '<div class="sec-block"><div class="sec-label">Detalhes da instituição</div>' +
+        '<div class="field-grid">' +
+          '<div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:3px">Tipo</label>' +
+            '<select onchange="upOrg(\'edu\',\''+org.id+'\',\'tipo\',this.value);renderDashboard()">' +
+              '<option value="publica"'+(org.tipo==='publica'?' selected':'')+'>Pública</option>' +
+              '<option value="privada"'+(org.tipo==='privada'?' selected':'')+'>Privada</option>' +
+            '</select></div>' +
+          '<div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:3px">Cidade</label>' +
+            '<input placeholder="Cidade" value="'+esc(org.cidade||'')+'" onchange="upOrg(\'edu\',\''+org.id+'\',\'cidade\',this.value)"></div>' +
+          '<div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:3px">Vagas / representantes</label>' +
+            '<input type="number" min="0" placeholder="0" value="'+esc(org.vagas||'')+'" onchange="upOrg(\'edu\',\''+org.id+'\',\'vagas\',this.value);renderDashboard()"></div>' +
+        '</div></div>'
+    : '<div class="sec-block"><div class="sec-label">Status e recursos</div>' +
+        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+          '<label style="font-size:13px;color:var(--text2)">Status:</label>' +
+          '<select onchange="upOrg(\'cap\',\''+org.id+'\',\'status\',+this.value);renderCap();renderDashboard()">' +
+            CAP_STATUS.map(function(s,i){ return '<option value="'+i+'"'+((org.status||0)==i?' selected':'')+'>'+s.label+'</option>'; }).join('') +
+          '</select>' +
+        '</div>' +
+        '<div class="val-row">' +
+          '<label>Valor captado (R$):</label>' +
+          '<input type="number" placeholder="0" value="'+esc(org.valor||'')+'" onchange="upOrg(\'cap\',\''+org.id+'\',\'valor\',this.value);renderDashboard()">' +
+          '<label>Meta (R$):</label>' +
+          '<input type="number" placeholder="0" value="'+esc(org.meta||'')+'" onchange="upOrg(\'cap\',\''+org.id+'\',\'meta\',this.value);renderDashboard()">' +
+        '</div></div>';
+
+  var statusSelectEdu = isEdu
+    ? '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 16px;border-bottom:0.5px solid var(--border)">' +
+        '<label style="font-size:13px;color:var(--text2)">Status:</label>' +
+        '<select onchange="upOrg(\'edu\',\''+org.id+'\',\'status\',+this.value);renderEdu();renderDashboard()">' +
+          EDU_STATUS.map(function(s,i){ return '<option value="'+i+'"'+((org.status||0)==i?' selected':'')+'>'+s.label+'</option>'; }).join('') +
+        '</select>' +
+      '</div>'
+    : '';
+
+  return '<div class="org-card" id="oc-'+org.id+'">' +
+    '<div class="org-header" onclick="toggle(\''+org.id+'\')">' +
+      '<div class="'+avatarClass+'">'+initials(org.name)+'</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div class="org-name">'+esc(org.name)+'</div>' +
+        '<div class="org-meta">'+(org.sector||'')+(isEdu&&org.cidade?' · '+esc(org.cidade):'')+'</div>' +
+      '</div>' +
+      '<div class="org-right">' +
+        '<span class="pill" style="background:'+st.bg+';color:'+st.color+'">'+st.label+'</span>' +
+        (isEdu && org.vagas ? '<span style="font-size:11px;color:var(--text2)">'+org.vagas+' vagas</span>' : '') +
+        '<span style="font-size:12px;color:var(--text3)">'+logCount+' int.</span>' +
+        '<span class="chevron '+(isOpen?'open':'')+'">⌄</span>' +
+      '</div>' +
+    '</div>' +
+    (isOpen
+      ? '<div class="org-body">' +
+          statusSelectEdu +
+          extraInfo +
+          '<div class="sec-block"><div class="sec-label">Observações</div>' +
+            '<textarea class="obs-area" placeholder="Histórico, notas…" onchange="upOrg(\''+mode+'\',\''+org.id+'\',\'obs\',this.value)">'+esc(org.obs||'')+'</textarea>' +
+          '</div>' +
+          '<div class="sec-block"><div class="sec-label">Pessoas ('+contacts.length+')</div>' +
+            contactsHtml +
+            '<button onclick="addContact(\''+mode+'\',\''+org.id+'\')">+ Adicionar pessoa</button>' +
+          '</div>' +
+          '<div class="org-footer">' +
+            '<button onclick="openOrgModal(\''+mode+'\',\''+org.id+'\')">✏ Editar</button>' +
+            '<button class="btn-danger" onclick="deleteOrg(\''+mode+'\',\''+org.id+'\')">🗑 Excluir</button>' +
+          '</div>' +
+        '</div>'
+      : '') +
+    '</div>';
+}
+
+// ── RENDER LISTS ─────────────────────────────────────────────────────────────
+function renderCap() {
+  var q = (document.getElementById('cap-search').value||'').toLowerCase();
+  var sf = document.getElementById('cap-filter').value;
+  var list = D.cap.filter(function(o) {
+    if (sf !== '' && String(o.status||0) !== sf) return false;
+    if (!q) return true;
+    if ((o.name||'').toLowerCase().includes(q)||(o.sector||'').toLowerCase().includes(q)) return true;
+    return (o.contacts||[]).some(function(c){ return ['name','role','email','phone'].some(function(f){ return (c[f]||'').toLowerCase().includes(q); }); });
+  });
+  document.getElementById('cap-list').innerHTML = list.length
+    ? list.map(function(o){ return renderOrgCard(o, CAP_STATUS, false); }).join('')
+    : '<div class="empty">'+(D.cap.length?'Nenhuma organização encontrada.':'Nenhuma organização. Clique em <strong>+ Nova organização</strong>.')+'</div>';
+}
+
+function renderEdu() {
+  var q = (document.getElementById('edu-search').value||'').toLowerCase();
+  var sf = document.getElementById('edu-filter-status').value;
+  var tf = document.getElementById('edu-filter-tipo').value;
+  var list = D.edu.filter(function(o) {
+    if (sf !== '' && String(o.status||0) !== sf) return false;
+    if (tf !== '' && (o.tipo||'') !== tf) return false;
+    if (!q) return true;
+    if ((o.name||'').toLowerCase().includes(q)||(o.cidade||'').toLowerCase().includes(q)) return true;
+    return (o.contacts||[]).some(function(c){ return ['name','role','email','phone'].some(function(f){ return (c[f]||'').toLowerCase().includes(q); }); });
+  });
+  document.getElementById('edu-list').innerHTML = list.length
+    ? list.map(function(o){ return renderOrgCard(o, EDU_STATUS, true); }).join('')
+    : '<div class="empty">'+(D.edu.length?'Nenhuma instituição encontrada.':'Nenhuma instituição. Clique em <strong>+ Nova instituição</strong>.')+'</div>';
+}
+
+// ── CRUD ─────────────────────────────────────────────────────────────────────
+function toggle(id) { expanded[id]=!expanded[id]; renderCap(); renderEdu(); }
+
+function upOrg(mode, id, field, val) {
+  var o = D[mode].find(function(x){ return x.id===id; });
+  if (o) { o[field]=val; save(); }
+}
+
+function upC(mode, orgId, cId, field, val) {
+  var o = D[mode].find(function(x){ return x.id===orgId; });
+  if (!o) return;
+  var c = (o.contacts||[]).find(function(x){ return x.id===cId; });
+  if (c) { c[field]=val; save(); }
+}
+
+function addContact(mode, orgId) {
+  var o = D[mode].find(function(x){ return x.id===orgId; });
+  if (!o) return;
+  if (!o.contacts) o.contacts = [];
+  o.contacts.push({ id:uid(), name:'', role:'', email:'', phone:'', obs:'', logs:[] });
+  expanded[orgId] = true;
+  save();
+  if (mode==='cap') renderCap(); else renderEdu();
+}
+
+function removeContact(mode, orgId, cId) {
+  var o = D[mode].find(function(x){ return x.id===orgId; });
+  if (!o) return;
+  o.contacts = (o.contacts||[]).filter(function(c){ return c.id!==cId; });
+  save();
+  if (mode==='cap') renderCap(); else renderEdu();
+}
+
+function addLog(mode, orgId, cId) {
+  var o = D[mode].find(function(x){ return x.id===orgId; });
+  if (!o) return;
+  var c = (o.contacts||[]).find(function(x){ return x.id===cId; });
+  if (!c) return;
+  var ltEl = document.getElementById('lt-'+cId);
+  var ldEl = document.getElementById('ld-'+cId);
+  var lrEl = document.getElementById('lr-'+cId);
+  var tipo = ltEl ? ltEl.value : 'outro';
+  var meetingDate = (tipo==='reuniao' && ldEl) ? ldEl.value.trim() : '';
+  var resp = lrEl ? lrEl.value.trim() : '';
+  if (!c.logs) c.logs = [];
+  c.logs.push({ date:today(), tipo:tipo, meetingDate:meetingDate, resp:resp });
+  if (tipo==='reuniao' && meetingDate && (o.status||0) < 2) { o.status = 2; }
+  save();
+  renderDashboard();
+  if (mode==='cap') renderCap(); else renderEdu();
+}
+
+function removeLog(mode, orgId, cId, li) {
+  var o = D[mode].find(function(x){ return x.id===orgId; });
+  if (!o) return;
+  var c = (o.contacts||[]).find(function(x){ return x.id===cId; });
+  if (!c) return;
+  c.logs.splice(li, 1);
+  save();
+  renderDashboard();
+  if (mode==='cap') renderCap(); else renderEdu();
+}
+
+function deleteOrg(mode, id) {
+  if (!confirm('Excluir e perder todos os dados desta entrada?')) return;
+  D[mode] = D[mode].filter(function(o){ return o.id!==id; });
+  save(); renderDashboard();
+  if (mode==='cap') renderCap(); else renderEdu();
+}
+
+function toggleDateField(cId) {
+  var sel = document.getElementById('lt-'+cId);
+  var df  = document.getElementById('ld-'+cId);
+  if (sel && df) df.style.display = sel.value==='reuniao' ? '' : 'none';
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────────
+function openOrgModal(mode, id) {
+  modalMode = mode;
+  editId = id || null;
+  var isEdu = mode === 'edu';
+  var o = id ? D[mode].find(function(x){ return x.id===id; }) : null;
+
+  document.getElementById('modal-org-title').textContent = o
+    ? (isEdu ? 'Editar instituição' : 'Editar organização')
+    : (isEdu ? 'Nova instituição' : 'Nova organização');
+
+  document.getElementById('mf-name').value   = o ? (o.name||'')   : '';
+  document.getElementById('mf-sector').value = o ? (o.sector||'') : '';
+  document.getElementById('mf-obs').value    = o ? (o.obs||'')    : '';
+  document.getElementById('mf-edu-fields').style.display = isEdu ? '' : 'none';
+  document.getElementById('mf-sector-label').textContent = isEdu ? 'Nível (ex.: Superior, Técnico)' : 'Setor / tipo';
+
+  if (isEdu) {
+    document.getElementById('mf-edu-tipo').value = o ? (o.tipo||'publica') : 'publica';
+    document.getElementById('mf-cidade').value   = o ? (o.cidade||'') : '';
+    document.getElementById('mf-vagas').value    = o ? (o.vagas||'')  : '';
+  }
+
+  var statusList = isEdu ? EDU_STATUS : CAP_STATUS;
+  document.getElementById('mf-status').innerHTML = statusList.map(function(s,i){
+    return '<option value="'+i+'"'+((o&&(o.status||0)==i)?' selected':'')+'>'+s.label+'</option>';
+  }).join('');
+
+  document.getElementById('modal-org').style.display = 'block';
+  setTimeout(function(){ document.getElementById('mf-name').focus(); }, 50);
+}
+
+function closeOrgModal() {
+  document.getElementById('modal-org').style.display = 'none';
+}
+
+document.getElementById('modal-org-bg').addEventListener('click', function(e) {
+  if (e.target === this) closeOrgModal();
+});
+
+function saveOrg() {
+  var name = document.getElementById('mf-name').value.trim();
+  if (!name) { document.getElementById('mf-name').focus(); return; }
+  var isEdu = modalMode === 'edu';
+  var status = +document.getElementById('mf-status').value;
+
+  if (editId) {
+    var o = D[modalMode].find(function(x){ return x.id===editId; });
+    o.name   = name;
+    o.sector = document.getElementById('mf-sector').value.trim();
+    o.status = status;
+    o.obs    = document.getElementById('mf-obs').value;
+    if (isEdu) {
+      o.tipo   = document.getElementById('mf-edu-tipo').value;
+      o.cidade = document.getElementById('mf-cidade').value.trim();
+      o.vagas  = +document.getElementById('mf-vagas').value || 0;
+    }
+  } else {
+    var entry = {
+      id: uid(), name: name,
+      sector: document.getElementById('mf-sector').value.trim(),
+      status: status,
+      obs: document.getElementById('mf-obs').value,
+      contacts: []
+    };
+    if (isEdu) {
+      entry.tipo   = document.getElementById('mf-edu-tipo').value;
+      entry.cidade = document.getElementById('mf-cidade').value.trim();
+      entry.vagas  = +document.getElementById('mf-vagas').value || 0;
+    } else {
+      entry.valor = 0;
+      entry.meta  = 0;
+    }
+    D[modalMode].push(entry);
+  }
+
+  save(); closeOrgModal(); renderDashboard();
+  if (modalMode==='cap') renderCap(); else renderEdu();
+}
+
+// ── EXPORT CSV ────────────────────────────────────────────────────────────────
+function exportCSV(mode) {
+  var isEdu = mode === 'edu';
+  var headers = isEdu
+    ? ['Instituição','Tipo','Nível','Cidade','Vagas','Status','Obs.','Nome','Cargo','E-mail','Telefone','Obs. Contato','Data','Tipo Contato','Data Reunião','Resposta']
+    : ['Organização','Setor','Status','Valor Captado','Meta','Obs.','Nome','Cargo','E-mail','Telefone','Obs. Contato','Data','Tipo Contato','Data Reunião','Resposta'];
+
+  var statuses = isEdu ? EDU_STATUS : CAP_STATUS;
+  var rows = [headers];
+
+  D[mode].forEach(function(o) {
+    var stLabel = statuses[o.status||0].label;
+    var base = isEdu
+      ? [o.name, o.tipo==='publica'?'Pública':'Privada', o.sector||'', o.cidade||'', o.vagas||0, stLabel, o.obs||'']
+      : [o.name, o.sector||'', stLabel, o.valor||0, o.meta||0, o.obs||''];
+
+    var contacts = o.contacts||[];
+    if (!contacts.length) {
+      rows.push(base.concat(['','','','','','','','','']));
+    } else {
+      contacts.forEach(function(c) {
+        var cp = [c.name||'', c.role||'', c.email||'', c.phone||'', c.obs||''];
+        var logs = c.logs||[];
+        if (!logs.length) {
+          rows.push(base.concat(cp).concat(['','','','']));
+        } else {
+          logs.forEach(function(l) {
+            rows.push(base.concat(cp).concat([l.date||'', tipoLabel(l.tipo), l.meetingDate||'', l.resp||'']));
+          });
+        }
+      });
+    }
+  });
+
+  var csv = rows.map(function(r){
+    return r.map(function(cell){ return '"'+String(cell).replace(/"/g,'""')+'"'; }).join(',');
+  }).join('\n');
+
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], { type:'text/csv;charset=utf-8;' }));
+  a.download = 'movemente_'+(isEdu?'educacao':'captacao')+'_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+// ── KEYBOARD ──────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', function(e) {
+  if (e.key==='Escape') closeOrgModal();
+  if (e.key==='Enter' && document.getElementById('modal-org').style.display==='block') saveOrg();
+});
+
+load();
+</script>
+</body>
+</html>
